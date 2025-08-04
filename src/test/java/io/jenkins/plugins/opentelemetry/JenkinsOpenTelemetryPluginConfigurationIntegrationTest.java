@@ -1,7 +1,7 @@
 package io.jenkins.plugins.opentelemetry;
 
-import hudson.Functions;
 import io.jenkins.plugins.opentelemetry.semconv.JenkinsMetrics;
+import io.opentelemetry.api.GlobalOpenTelemetry;
 import io.opentelemetry.sdk.metrics.data.MetricData;
 import io.opentelemetry.sdk.testing.exporter.InMemoryMetricExporterProvider;
 import io.opentelemetry.sdk.testing.exporter.InMemoryMetricExporterUtils;
@@ -19,7 +19,6 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assume.assumeFalse;
 
 @WithJenkins
 public class JenkinsOpenTelemetryPluginConfigurationIntegrationTest {
@@ -28,12 +27,13 @@ public class JenkinsOpenTelemetryPluginConfigurationIntegrationTest {
     }
 
     @BeforeEach() public void before() {
-        assumeFalse(Functions.isWindows());
+        GlobalOpenTelemetry.resetForTest();
     }
 
     @After
     public void after() throws Exception {
         InMemoryMetricExporterProvider.LAST_CREATED_INSTANCE.reset();
+        GlobalOpenTelemetry.resetForTest();
     }
 
     @Test
@@ -57,7 +57,7 @@ public class JenkinsOpenTelemetryPluginConfigurationIntegrationTest {
         await().until(() -> getServiceNameFromLastExportedMetric(JenkinsMetrics.JENKINS_QUEUE_COUNT), is("name-1"));
     }
 
-    private String getServiceNameFromLastExportedMetric(String metricName) {
+    private static String getServiceNameFromLastExportedMetric(String metricName) {
         Map<String, MetricData> exportedMetrics = InMemoryMetricExporterUtils.getLastExportedMetricByMetricName(
                 InMemoryMetricExporterProvider.LAST_CREATED_INSTANCE.getFinishedMetricItems());
         var metric = Optional.ofNullable(exportedMetrics.get(metricName));
