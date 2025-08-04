@@ -14,6 +14,7 @@ import jenkins.model.Jenkins;
 import org.junit.After;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import static org.awaitility.Awaitility.await;
@@ -36,6 +37,7 @@ public class JenkinsOpenTelemetryPluginConfigurationIntegrationTest {
     }
 
     @Test
+    @Issue("https://github.com/jenkinsci/opentelemetry-plugin/issues/1156")
     public void configLoadReconfiguresOtelSdk(JenkinsRule r) throws Exception {
         var extension = JenkinsOpenTelemetryPluginConfiguration.get();
         extension.setEndpoint("http://localhost:4317");
