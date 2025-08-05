@@ -94,11 +94,6 @@ import org.kohsuke.stapler.StaplerRequest2;
 public class JenkinsOpenTelemetryPluginConfiguration extends GlobalConfiguration {
     private static final Logger LOGGER = Logger.getLogger(JenkinsOpenTelemetryPluginConfiguration.class.getName());
 
-    /**
-     * Used to delay the initialization of the OTel SDK when {@link #load} is called by {@link #JenkinsOpenTelemetryPluginConfiguration} while still allowing direct calls to {@link #load} to reconfigure the OTel SDK.
-     */
-    private static final ThreadLocal<Boolean> LOADING_VIA_CONSTRUCTOR = ThreadLocal.withInitial(() -> false);
-
     static {
         IconSet.icons.addIcon(new Icon("icon-otel icon-sm", ICONS_PREFIX + "opentelemetry.svg", Icon.ICON_SMALL_STYLE));
         IconSet.icons.addIcon(
@@ -165,23 +160,17 @@ public class JenkinsOpenTelemetryPluginConfiguration extends GlobalConfiguration
 
     @DataBoundConstructor
     public JenkinsOpenTelemetryPluginConfiguration() {
-        LOADING_VIA_CONSTRUCTOR.set(true);
         load();
     }
 
     @Override
     public void load() {
         super.load();
-        try {
-            if (!LOADING_VIA_CONSTRUCTOR.get()) {
-                // After reloading the XML configuration, we need to also reconfigure the OTel SDK, otherwise they may
-                // be out of sync. We avoid doing this when `load` is called via the constructor so that at startup,
-                // `configureOpenTelemetrySdk` runs for the first time via `@Initializer` after any CasC configuration
-                // has been applied.
-                configureOpenTelemetrySdk();
-            }
-        } finally {
-            LOADING_VIA_CONSTRUCTOR.remove();
+        if (currentOpenTelemetryConfiguration != null) {
+            // After reloading the XML configuration, we need to reconfigure the OTel SDK, otherwise the fields here
+            // may be out of sync with the SDK. We only do this as long as `configureOpenTelemetrySdk` has run at least
+            // once so that the first configuration happens during startup via `@Initializer` after applying CasC.
+            configureOpenTelemetrySdk();
         }
     }
 
